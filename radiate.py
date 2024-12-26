@@ -309,87 +309,95 @@ class Sequence:
         return output
 
     def vis_all(self, output, wait_time=1):
-        """method to diplay all the sensors/annotations
+        """method to display all the sensors/annotations
 
         :param output: gets the output from self.get_from_timestamp(t)
         :type output: dict
-        :param wait_time: how to long to wait until display next frame. 0 means it will wait for any key, defaults to 1
+        :param wait_time: how long to wait until display the next frame. 0 means it will wait for any key, defaults to 1
         :type wait_time: int, optional
         """
-        if (output != {}):
+        if output != {}:
             if self.config['save_images']:
-                os.makedirs(os.path.join(self.output_folder,
-                                         str(self.current_time)), exist_ok=True)
+                os.makedirs(os.path.join(self.output_folder, str(self.current_time)), exist_ok=True)
+
+            # Handle different sensor data
             if self.config['use_camera_left_raw']:
-                cv2.imshow('camera left raw',
-                           output['sensors']['camera_left_raw'])
+                im_left = output['sensors']['camera_left_raw']
+                cv2.imshow('camera left raw', im_left)
+
+                # Add bounding boxes for left camera if annotations exist
+                if 'camera_left_rect' in output['annotations']:
+                    bboxes_left = output['annotations']['camera_left_rect']
+                    for bbox in bboxes_left:
+                        # Assume bbox is in [x1, y1, x2, y2] format
+                        cv2.rectangle(im_left, (bbox[0], bbox[1]), (bbox[2], bbox[3]), (0, 255, 0), 2)
+
                 if self.config['save_images']:
-                    cv2.imwrite(os.path.join(self.output_folder,  str(
-                        self.current_time), 'camera_left_raw.png'), output['sensors']['camera_left_raw'])
+                    cv2.imwrite(os.path.join(self.output_folder, str(self.current_time), 'camera_left_raw.png'),
+                                im_left)
 
             if self.config['use_camera_right_raw']:
-                cv2.imshow('camera right raw',
-                           output['sensors']['camera_right_raw'])
+                im_right = output['sensors']['camera_right_raw']
+                cv2.imshow('camera right raw', im_right)
+
+                # Add bounding boxes for right camera if annotations exist
+                if 'camera_right_rect' in output['annotations']:
+                    bboxes_right = output['annotations']['camera_right_rect']
+                    for bbox in bboxes_right:
+                        # Assume bbox is in [x1, y1, x2, y2] format
+                        cv2.rectangle(im_right, (bbox[0], bbox[1]), (bbox[2], bbox[3]), (0, 255, 0), 2)
+
                 if self.config['save_images']:
-                    cv2.imwrite(os.path.join(self.output_folder,  str(
-                        self.current_time), 'camera_right_raw.png'), output['sensors']['camera_right_raw'])
+                    cv2.imwrite(os.path.join(self.output_folder, str(self.current_time), 'camera_right_raw.png'),
+                                im_right)
 
             if self.config['use_camera_left_rect']:
-                left_bb = self.vis_3d_bbox_cam(
-                    output['sensors']['camera_left_rect'], output['annotations']['camera_left_rect'])
+                left_bb = self.vis_3d_bbox_cam(output['sensors']['camera_left_rect'],
+                                               output['annotations'].get('camera_left_rect', []))
                 cv2.imshow('camera left', left_bb)
                 if self.config['save_images']:
-                    cv2.imwrite(os.path.join(self.output_folder,  str(
-                        self.current_time), 'left_bb.png'), left_bb)
+                    cv2.imwrite(os.path.join(self.output_folder, str(self.current_time), 'left_bb.png'), left_bb)
 
             if self.config['use_camera_right_rect']:
-                right_bb = self.vis_3d_bbox_cam(
-                    output['sensors']['camera_right_rect'], output['annotations']['camera_right_rect'])
+                right_bb = self.vis_3d_bbox_cam(output['sensors']['camera_right_rect'],
+                                                output['annotations'].get('camera_right_rect', []))
                 cv2.imshow('camera right', right_bb)
                 if self.config['save_images']:
-                    cv2.imwrite(os.path.join(self.output_folder,  str(
-                        self.current_time), 'right_bb.png'), right_bb.astype(np.uint8))
+                    cv2.imwrite(os.path.join(self.output_folder, str(self.current_time), 'right_bb.png'), right_bb)
 
             if self.config['use_radar_cartesian']:
-                radar_cart_vis = self.vis(
-                    output['sensors']['radar_cartesian'], output['annotations']['radar_cartesian'])
+                radar_cart_vis = self.vis(output['sensors']['radar_cartesian'],
+                                          output['annotations'].get('radar_cartesian', []))
                 cv2.imshow('radar', radar_cart_vis)
                 if self.config['save_images']:
-                    cv2.imwrite(os.path.join(self.output_folder,  str(
-                        self.current_time), 'radar_cart_vis.png'), radar_cart_vis)
+                    cv2.imwrite(os.path.join(self.output_folder, str(self.current_time), 'radar_cart_vis.png'),
+                                radar_cart_vis)
 
-            if self.config['use_radar_polar']:
-                cv2.imshow('radar', output['sensors']['radar_polar'])
-                if self.config['save_images']:
-                    cv2.imwrite(os.path.join(self.output_folder,  str(
-                        self.current_time), 'radar_polar.png'), output['sensors']['radar_polar'])
-
-            if (self.config['use_lidar_bev_image']):
-                lidar_vis = self.vis(
-                    output['sensors']['lidar_bev_image'], output['annotations']['lidar_bev_image'])
+            if self.config['use_lidar_bev_image']:
+                lidar_vis = self.vis(output['sensors']['lidar_bev_image'],
+                                     output['annotations'].get('lidar_bev_image', []))
                 cv2.imshow('lidar image', lidar_vis)
                 if self.config['save_images']:
-                    cv2.imwrite(os.path.join(self.output_folder,  str(
-                        self.current_time), 'lidar_vis.png'), lidar_vis)
+                    cv2.imwrite(os.path.join(self.output_folder, str(self.current_time), 'lidar_vis.png'), lidar_vis)
 
             if self.config['use_proj_lidar_left']:
                 overlay_left = self.overlay_camera_lidar(output['sensors']['camera_left_rect'],
                                                          output['sensors']['proj_lidar_left'])
-                overlay_left_bb = self.vis_3d_bbox_cam(
-                    overlay_left, output['annotations']['camera_left_rect'])
+                overlay_left_bb = self.vis_3d_bbox_cam(overlay_left, output['annotations'].get('camera_left_rect', []))
                 cv2.imshow('projected lidar to left camera', overlay_left_bb)
                 if self.config['save_images']:
-                    cv2.imwrite(os.path.join(self.output_folder,  str(
-                        self.current_time), 'overlay_left_bb.png'), overlay_left_bb)
+                    cv2.imwrite(os.path.join(self.output_folder, str(self.current_time), 'overlay_left_bb.png'),
+                                overlay_left_bb)
+
             if self.config['use_proj_lidar_right']:
                 overlay_right = self.overlay_camera_lidar(output['sensors']['camera_right_rect'],
                                                           output['sensors']['proj_lidar_right'])
-                overlay_right_bb = self.vis_3d_bbox_cam(
-                    overlay_right, output['annotations']['camera_right_rect'])
+                overlay_right_bb = self.vis_3d_bbox_cam(overlay_right,
+                                                        output['annotations'].get('camera_right_rect', []))
                 cv2.imshow('projected lidar to right camera', overlay_right_bb)
                 if self.config['save_images']:
-                    cv2.imwrite(os.path.join(self.output_folder, str(
-                        self.current_time), 'overlay_right_bb.png'), overlay_right_bb)
+                    cv2.imwrite(os.path.join(self.output_folder, str(self.current_time), 'overlay_right_bb.png'),
+                                overlay_right_bb)
 
         cv2.waitKey(wait_time)
 
